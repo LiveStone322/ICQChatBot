@@ -11,7 +11,7 @@ namespace ICQChatBot
 
         static void Main(string[] args)
         {
-
+            // Artrom test commit
             bot.OnMessage += BotOnMessageReceived;
             var me = bot.GetMeAsync().Result;
 
