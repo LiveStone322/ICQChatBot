@@ -7,7 +7,7 @@ namespace ICQChatBot
 
     class Program
     {
-        private readonly static IICQBotClient bot = new ICQBotClient("[BOT_ID_FROM_ICQ_METABOT]");
+        private readonly static IICQBotClient bot = new ICQBotClient("001.2515800160.2031375345:752865044");
 
         static void Main(string[] args)
         {
