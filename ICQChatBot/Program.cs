@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using ICQ.Bot;
 using ICQ.Bot.Args;
 
 namespace ICQChatBot
 {
-
     class Program
     {
-        private readonly static IICQBotClient bot = new ICQBotClient("001.2515800160.2031375345:752865044");
+        private readonly static IICQBotClient bot = new ICQBotClient(Token.Token);
 
         static void Main(string[] args)
         {
