@@ -5,7 +5,7 @@
 
 # All is Super Safe 
 Token.cs
-PrivateData.cs
+ParseHotWater/ParseHotWater/PrivateData.cs
 
 # User-specific files
 *.rsuser
