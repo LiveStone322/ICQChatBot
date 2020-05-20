@@ -6,7 +6,7 @@ namespace ICQChatBot
 {
     class Program
     {
-        private readonly static IICQBotClient bot = new ICQBotClient(Token.Token);
+        private readonly static IICQBotClient bot = new ICQBotClient(Token.GetToken);
 
         static void Main(string[] args)
         {
