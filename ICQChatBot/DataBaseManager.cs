@@ -113,6 +113,37 @@ namespace ICQChatBot
             return fetchedData;
 
         }
+
+        public string SearchForEntityAndActivity(string entity, string activity)
+        {
+            string commandText = @"select * from knowledge_base
+                                    where entity = @e and activity = @a";
+            Dictionary<string, string> parameters = new Dictionary<string, string>
+            {
+                { "e", entity },
+                { "a", activity }
+            };
+
+            var fetchedData = FetchData(commandText, parameters);
+
+            if (fetchedData.Count >= 1) return fetchedData[0][2];
+            else return null;
+        }
+
+        internal string SearchForEntityAndActivity(string activity)
+        {
+            string commandText = @"select * from knowledge_base
+                                    where activity = @a";
+            Dictionary<string, string> parameters = new Dictionary<string, string>
+            {
+                { "a", activity }
+            };
+
+            var fetchedData = FetchData(commandText, parameters);
+
+            if (fetchedData.Count >= 1) return fetchedData[0][2];
+            else return null;
+        }
     }
 }
 

@@ -82,10 +82,12 @@ namespace ICQChatBot
             string messageText = message.Text.ToLower();
             string outText = "Нипонял";
 
+            //Item1 - text, Item2 - bool error
             var naturalLanguageOutput = NaturalLanguageProcess(messageText);
             if (naturalLanguageOutput.Item2)
             {
-                messageText = naturalLanguageOutput.Item1;
+                if (naturalLanguageOutput != null)
+                    messageText = naturalLanguageOutput.Item1;
 
                 switch (messageText)
                 {
@@ -109,12 +111,25 @@ namespace ICQChatBot
         {
             //if we are being ddosed
             if (messageText.Length >= 256) return new Tuple<string, bool>(tooLongMsg, false);
+
             var message = messageText.Replace(",", "").Replace(".", "").Replace(":", "").Split(' ');
-            string result = null;
-            foreach (var e in message)
-                foreach (var a in message)
-                    if (result != null) return new Tuple<string, bool>(result, true);
-            return new Tuple<string, bool>(null, false);
+            string result;
+            if (message.Length != 1)
+            {
+                foreach (var e in message)
+                    foreach (var a in message)
+                    {
+                        result = dbManager.SearchForEntityAndActivity(e, a);
+                        if (result != null) return new Tuple<string, bool>(result, true);
+                    }
+            }
+            else
+            {
+                result = dbManager.SearchForEntityAndActivity(message[0]);
+                if (result != null) return new Tuple<string, bool>(result, true);
+            }
+
+            return new Tuple<string, bool>(null, true);
         }
 
         private static string StartWaterSequence(int userId, string messageText)
