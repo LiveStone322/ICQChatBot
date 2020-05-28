@@ -34,6 +34,7 @@ namespace ICQChatBot
         private static string buildingMsg = "Введите, пожалуйста, дом";
         private static string failedMsg = "Мой адрес не дом и не улица,\nМой адрес - Советский Союз";
         private static string NEEEEEEmsg = "НИИИИИ";
+        private static string tooLongMsg = "Вы ввели слишком длинную команду";
         private static string answerMsg = "Отключение воды в выбранном Вами доме запланировано ";
         private static string helpMsg = "Вот что я умею:\n" 
                                            + "/help - помощь по командам\n"
@@ -81,28 +82,39 @@ namespace ICQChatBot
             string messageText = message.Text.ToLower();
             string outText = "Нипонял";
 
-            messageText = NaturalLanguageProcess(messageText);
-
-            switch (messageText)
+            var naturalLanguageOutput = NaturalLanguageProcess(messageText);
+            if (naturalLanguageOutput.Item2)
             {
-                case ("/help"):
-                case ("/start"):
-                    outText = helpMsg;
-                    break;
-                case ("/water"):
-                    outText = StartWaterSequence(message.From.UserId, messageText);
-                    break;
-                default:
-                    outText = ProcessWaterSequence(message.From.UserId, messageText);
-                    break;
-            }
+                messageText = naturalLanguageOutput.Item1;
 
+                switch (messageText)
+                {
+                    case ("/help"):
+                    case ("/start"):
+                        outText = helpMsg;
+                        break;
+                    case ("/water"):
+                        outText = StartWaterSequence(message.From.UserId, messageText);
+                        break;
+                    default:
+                        outText = ProcessWaterSequence(message.From.UserId, messageText);
+                        break;
+                }
+            }
+            else outText = naturalLanguageOutput.Item1;
             bot.SendTextMessageAsync(message.From.UserId, outText).Wait();
         }
 
-        private static string NaturalLanguageProcess(string messageText)
+        private static Tuple<string, bool> NaturalLanguageProcess(string messageText)
         {
-            throw new NotImplementedException();
+            //if we are being ddosed
+            if (messageText.Length >= 256) return new Tuple<string, bool>(tooLongMsg, false);
+            var message = messageText.Replace(",", "").Replace(".", "").Replace(":", "").Split(' ');
+            string result = null;
+            foreach (var e in message)
+                foreach (var a in message)
+                    if (result != null) return new Tuple<string, bool>(result, true);
+            return new Tuple<string, bool>(null, false);
         }
 
         private static string StartWaterSequence(int userId, string messageText)
