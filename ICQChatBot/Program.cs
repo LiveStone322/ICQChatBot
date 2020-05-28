@@ -86,7 +86,7 @@ namespace ICQChatBot
             var naturalLanguageOutput = NaturalLanguageProcess(messageText);
             if (naturalLanguageOutput.Item2)
             {
-                if (naturalLanguageOutput != null)
+                if (naturalLanguageOutput.Item1 != null)
                     messageText = naturalLanguageOutput.Item1;
 
                 switch (messageText)
