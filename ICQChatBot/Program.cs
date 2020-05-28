@@ -81,9 +81,12 @@ namespace ICQChatBot
             string messageText = message.Text.ToLower();
             string outText = "Нипонял";
 
+            messageText = NaturalLanguageProcess(messageText);
+
             switch (messageText)
             {
                 case ("/help"):
+                case ("/start"):
                     outText = helpMsg;
                     break;
                 case ("/water"):
@@ -95,6 +98,11 @@ namespace ICQChatBot
             }
 
             bot.SendTextMessageAsync(message.From.UserId, outText).Wait();
+        }
+
+        private static string NaturalLanguageProcess(string messageText)
+        {
+            throw new NotImplementedException();
         }
 
         private static string StartWaterSequence(int userId, string messageText)
@@ -142,7 +150,6 @@ namespace ICQChatBot
                     usersInputs.Remove(userId);
                     break;
             }
-
 
             return outText;
         }
