@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using Npgsql;
-using DuoVia.FuzzyStrings;
+using FuzzyString;
 
 namespace ICQChatBot
 {
@@ -111,30 +111,30 @@ namespace ICQChatBot
             else return null;
         }
 
-        private string FindCity(string city)
+        public string FindCity(string city)
         {
             string commandText = @"select distinct city from hot_water";
             Dictionary<string, string> parameters = new Dictionary<string, string>();
             var fetchedData = FetchData(commandText, parameters).Select(t => t[0]).ToArray();
 
-            double maxMatch = -1;
+            double minMatch = 99;
             double match;
             string matchedString = "";
             foreach(var e in fetchedData)
             {
-                match = e.FuzzyMatch(city);
-                if (match > maxMatch)
+                match = e.JaccardDistance(city);
+                if (match < minMatch)
                 {
-                    maxMatch = match;
+                    minMatch = match;
                     matchedString = e;
                 }
             }
 
-            if (maxMatch == -1) return null;
+            if (minMatch == 99) return null;
             return matchedString;
         }
 
-        private string FindStreet(string street, string city)
+        public string FindStreet(string street, string city)
         {
             string commandText = @"select distinct street from hot_water where city=@c";
             Dictionary<string, string> parameters = new Dictionary<string, string>
@@ -143,24 +143,24 @@ namespace ICQChatBot
             }; 
             var fetchedData = FetchData(commandText, parameters).Select(t => t[0]).ToArray();
 
-            double maxMatch = -1;
+            double minMatch = 99;
             double match;
             string matchedString = "";
             foreach (var e in fetchedData)
             {
-                match = e.FuzzyMatch(street);
-                if (match > maxMatch)
+                match = e.JaccardDistance(street);
+                if (match < minMatch)
                 {
-                    maxMatch = match;
+                    minMatch = match;
                     matchedString = e;
                 }
             }
 
-            if (maxMatch == -1) return null;
+            if (minMatch == 99) return null;
             return matchedString;
         }
 
-        private string FindBuilding(string building, string city, string street)
+        public string FindBuilding(string building, string city, string street)
         {
             string commandText = @"select distinct building from hot_water where city=@c and street=@s";
             Dictionary<string, string> parameters = new Dictionary<string, string>
@@ -170,20 +170,20 @@ namespace ICQChatBot
             };
             var fetchedData = FetchData(commandText, parameters).Select(t => t[0]).ToArray();
 
-            double maxMatch = -1;
+            double minMatch = 99;
             double match;
             string matchedString = "";
             foreach (var e in fetchedData)
             {
-                match = e.FuzzyMatch(building);
-                if (match > maxMatch)
+                match = ComparisonMetrics.JaccardDistance(e, building);
+                if (match < minMatch)
                 {
-                    maxMatch = match;
+                    minMatch = match;
                     matchedString = e;
                 }
             }
 
-            if (maxMatch == -1) return null;
+            if (minMatch == 99) return null;
             return matchedString;
         }
 
@@ -215,7 +215,7 @@ namespace ICQChatBot
                     {
                         array[i] = dataReader[i].ToString();
                     }
-                    fetchedData.Add(array);
+                    fetchedData.Add((string[])array.Clone());
                 }   
             }
             return fetchedData;

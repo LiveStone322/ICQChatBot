@@ -39,6 +39,7 @@ namespace ICQChatBot
         private static string helpMsg = "Вот что я умею:\n" 
                                            + "/help - помощь по командам\n"
                                            + "/water - напишите это, чтобы узнать, когда в выбранном доме отключат горячую воду";
+        private static string notFoundMsg = "Я не нашел точного совпадения, но нашел ";
 
         private static DataBaseManager dbManager;
 
@@ -166,18 +167,24 @@ namespace ICQChatBot
             switch (userState)
             {
                 case (State.WaitCity):
-                    userInput.city = messageText;
+                    var c = dbManager.FindCity(messageText);
+                    userInput.city = c;
                     outText = streetMsg;
                     botStates[userId] = State.WaitStreet;
+                    if (c != messageText) outText = notFoundMsg + c + "\n" + outText;
                     break;
                 case (State.WaitStreet):
-                    userInput.street = messageText;
+                    var s = dbManager.FindStreet(messageText, userInput.city);
+                    userInput.street = s;
                     outText = buildingMsg;
                     botStates[userId] = State.WaitBuilding;
+                    if (s != messageText) outText = notFoundMsg + s + "\n" + outText;
                     break;
                 case (State.WaitBuilding):
-                    userInput.building = messageText;
+                    var b = dbManager.FindBuilding(messageText, userInput.city, userInput.street);
+                    userInput.building = b;
                     outText = GetResult(userInput);
+                    if (b != messageText) outText = notFoundMsg + b + " здание\n Возможно, нет данных для выбранного дома \n" + outText;
 
                     // Clearing up
                     botStates.Remove(userId);
