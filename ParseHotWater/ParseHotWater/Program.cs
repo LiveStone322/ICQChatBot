@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using HtmlAgilityPack;
 using Npgsql;
 
 namespace ParseHotWater
@@ -33,44 +34,16 @@ namespace ParseHotWater
                 sConn.Open();
                 while (true)
                 {
-                    HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("https://permkrai.ru/ajax/water/getPointsList.php?theme=&PAGEN_1=" + i
-                                                                                    + "&AJAX_LOAD=&MORE=Y&query=&type=");
-                    HttpWebResponse resp;
-                    req.Method = "GET";
-                    try
-                    {
-                        resp = (HttpWebResponse)req.GetResponse();
-                    }
-                    catch
-                    {
-                        break;
-                    }
                     string temp = "";
-                    using (Stream input = resp.GetResponseStream())
-                    {
-                        int count = 0;
-                        byte[] buf = new byte[8192];
-                        do
-                        {
-                            count = input.Read(buf, 0, buf.Length);
-                            if (count != 0)
-                                temp += Encoding.UTF8.GetString(buf, 0, count);
-                            // n-4 - город
-                            // n-3 - улица
-                            // n-2 - дом
-                            // n-1 - длительность
-                        }
-                        while (count > 0);
-                    }
+                    var html = @"https://permkrai.ru/ajax/water/getPointsList.php?theme=&PAGEN_1=" + i + @"&AJAX_LOAD=&MORE=Y&query=&type=";
+                    HtmlWeb web = new HtmlWeb();
+                    var htmlDoc = web.Load(html);
+                    foreach (var c in htmlDoc.DocumentNode.ChildNodes)
+                        temp += c.InnerText + "\n";
+                    i++;
+
                     values = temp               //ужасный код, но вижак не хочет сам его форматировать
-                                    .Replace("<tr>", "")
-                                    .Replace("</tr>", "")
-                                    .Replace("<td>", "")
-                                    .Replace("</td>", "")
-                                    .Replace("<br>", "\n")
-                                    .Replace("\n\n", "\n")
                                     .Replace("Жилой дом", ", ")
-                                    .Replace("Ж��лой дом", ", ")
                                     .Replace("Школа", ", ")
                                     .Replace("Детский сад", ", ")
                                     .Replace("Административное здание", ", ")
@@ -102,7 +75,7 @@ namespace ParseHotWater
                         };
                         int kostil = 0;
                         var parsedElement = ParseElement(e);
-                        
+
                         if (e.Length < 4) continue;
                         sCommand.Parameters.AddWithValue("@p1", parsedElement[0]);
                         sCommand.Parameters.AddWithValue("@p2", parsedElement[1]);
@@ -114,7 +87,6 @@ namespace ParseHotWater
                         Console.WriteLine();
                         Console.WriteLine(parsedElement[0] + " " + parsedElement[1] + " " + parsedElement[2] + " " + parsedElement[3] + " added");
                     }
-                    i++;
                     Console.WriteLine("Закончилась " + i + " страница.");
                 }
             }
@@ -138,10 +110,10 @@ namespace ParseHotWater
             }
             else
             {
-                building = e[e.Length - 2].Trim();
-                duration = e[e.Length - 1].Trim();
+                duration = e[e.Length - 1];
+                building = e[e.Length - 2];
                 street = e[e.Length - 3];
-                city = e[e.Length - 4].Trim();
+                city = e[e.Length - 4];
             }
             if (!(street.Contains("улица") ||        //если street - не улица, то отсутствует дом
                     street.Contains("площадь") ||
@@ -151,17 +123,25 @@ namespace ParseHotWater
                     street.Contains("аллея") ||
                     street.Contains("шоссе")))
             {
-                city = TrimCity(street);
-                street = TrimStreet(building);
+                city = street;
+                street = building;
                 building = "";
+                if (!(street.Contains("улица") ||        //еще раз проверяем. Ох этот говнокод
+                    street.Contains("площадь") ||
+                    street.Contains("проспект") ||
+                    street.Contains("бульвар") ||
+                    street.Contains("переулок") ||
+                    street.Contains("аллея") ||
+                    street.Contains("шоссе")))
+                {
+                    city = street;
+                    street = "";
+                }
             }
-            else
-            {
-                city = TrimCity(city);
-                street = TrimStreet(street);
-            }
+            city = TrimCity(city);
+            street = TrimStreet(street);
 
-            return new string[] { city.Trim(), street, building.Trim(), duration };
+            return new string[] { city, street, building.Trim(), duration };
             
         }
 
@@ -179,14 +159,14 @@ namespace ParseHotWater
         private static string TrimCity(string v)
         {
             return v
-                                    .Replace("поселок городского типа ", "")
-                                    .Replace("посёлок городского типа ", "")
-                                    .Replace("рабочий поселок ", "")
-                                    .Replace("рабочий посёлок  ", "")
-                                    .Replace("деревня ", "")
-                                    .Replace("посёлок ", "")
-                                    .Replace("поселок ", "")
-                                    .Replace("город ", "")
+                                    .Replace("поселок городского типа", "")
+                                    .Replace("посёлок городского типа", "")
+                                    .Replace("рабочий поселок", "")
+                                    .Replace("рабочий посёлок", "")
+                                    .Replace("деревня", "")
+                                    .Replace("посёлок", "")
+                                    .Replace("поселок", "")
+                                    .Replace("город", "")
                                     .Replace("село", "")
                                     .Trim();
         }
