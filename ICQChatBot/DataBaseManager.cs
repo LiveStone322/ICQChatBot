@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using Npgsql;
+using DuoVia.FuzzyStrings;
 
 namespace ICQChatBot
 {
@@ -78,6 +80,112 @@ namespace ICQChatBot
             return fetchedData;
         }
 
+        public string SearchForEntityAndActivity(string entity, string activity)
+        {
+            string commandText = @"select * from knowledge_base
+                                    where entity = @e and activity = @a";
+            Dictionary<string, string> parameters = new Dictionary<string, string>
+            {
+                { "e", entity },
+                { "a", activity }
+            };
+
+            var fetchedData = FetchData(commandText, parameters);
+
+            if (fetchedData.Count >= 1) return fetchedData[0][2];
+            else return null;
+        }
+
+        internal string SearchForEntityAndActivity(string activity)
+        {
+            string commandText = @"select * from knowledge_base
+                                    where activity = @a";
+            Dictionary<string, string> parameters = new Dictionary<string, string>
+            {
+                { "a", activity }
+            };
+
+            var fetchedData = FetchData(commandText, parameters);
+
+            if (fetchedData.Count >= 1) return fetchedData[0][2];
+            else return null;
+        }
+
+        private string FindCity(string city)
+        {
+            string commandText = @"select distinct city from hot_water";
+            Dictionary<string, string> parameters = new Dictionary<string, string>();
+            var fetchedData = FetchData(commandText, parameters).Select(t => t[0]).ToArray();
+
+            double maxMatch = -1;
+            double match;
+            string matchedString = "";
+            foreach(var e in fetchedData)
+            {
+                match = e.FuzzyMatch(city);
+                if (match > maxMatch)
+                {
+                    maxMatch = match;
+                    matchedString = e;
+                }
+            }
+
+            if (maxMatch == -1) return null;
+            return matchedString;
+        }
+
+        private string FindStreet(string street, string city)
+        {
+            string commandText = @"select distinct street from hot_water where city=@c";
+            Dictionary<string, string> parameters = new Dictionary<string, string>
+            {
+                { "c", city }
+            }; 
+            var fetchedData = FetchData(commandText, parameters).Select(t => t[0]).ToArray();
+
+            double maxMatch = -1;
+            double match;
+            string matchedString = "";
+            foreach (var e in fetchedData)
+            {
+                match = e.FuzzyMatch(street);
+                if (match > maxMatch)
+                {
+                    maxMatch = match;
+                    matchedString = e;
+                }
+            }
+
+            if (maxMatch == -1) return null;
+            return matchedString;
+        }
+
+        private string FindBuilding(string building, string city, string street)
+        {
+            string commandText = @"select distinct building from hot_water where city=@c and street=@s";
+            Dictionary<string, string> parameters = new Dictionary<string, string>
+            {
+                { "c", city },
+                { "s", street }
+            };
+            var fetchedData = FetchData(commandText, parameters).Select(t => t[0]).ToArray();
+
+            double maxMatch = -1;
+            double match;
+            string matchedString = "";
+            foreach (var e in fetchedData)
+            {
+                match = e.FuzzyMatch(building);
+                if (match > maxMatch)
+                {
+                    maxMatch = match;
+                    matchedString = e;
+                }
+            }
+
+            if (maxMatch == -1) return null;
+            return matchedString;
+        }
 
         private List<string[]> FetchData(string commandText, Dictionary<string, string> parameters)
         {
@@ -112,37 +220,6 @@ namespace ICQChatBot
             }
             return fetchedData;
 
-        }
-
-        public string SearchForEntityAndActivity(string entity, string activity)
-        {
-            string commandText = @"select * from knowledge_base
-                                    where entity = @e and activity = @a";
-            Dictionary<string, string> parameters = new Dictionary<string, string>
-            {
-                { "e", entity },
-                { "a", activity }
-            };
-
-            var fetchedData = FetchData(commandText, parameters);
-
-            if (fetchedData.Count >= 1) return fetchedData[0][2];
-            else return null;
-        }
-
-        internal string SearchForEntityAndActivity(string activity)
-        {
-            string commandText = @"select * from knowledge_base
-                                    where activity = @a";
-            Dictionary<string, string> parameters = new Dictionary<string, string>
-            {
-                { "a", activity }
-            };
-
-            var fetchedData = FetchData(commandText, parameters);
-
-            if (fetchedData.Count >= 1) return fetchedData[0][2];
-            else return null;
         }
     }
 }

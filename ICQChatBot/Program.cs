@@ -33,7 +33,7 @@ namespace ICQChatBot
         private static string streetMsg = "Введите, пожалуйста, улицу";
         private static string buildingMsg = "Введите, пожалуйста, дом";
         private static string failedMsg = "Мой адрес не дом и не улица,\nМой адрес - Советский Союз";
-        private static string NEEEEEEmsg = "НИИИИИ";
+        private static string NEEEEEEmsg = "Не понял Вашего сообщения. Введите, пожалуйста, еще раз, но другими словами";
         private static string tooLongMsg = "Вы ввели слишком длинную команду";
         private static string answerMsg = "Отключение воды в выбранном Вами доме запланировано ";
         private static string helpMsg = "Вот что я умею:\n" 
@@ -112,7 +112,14 @@ namespace ICQChatBot
             //if we are being ddosed
             if (messageText.Length >= 256) return new Tuple<string, bool>(tooLongMsg, false);
 
-            var message = messageText.Replace(",", "").Replace(".", "").Replace(":", "").Split(' ');
+            var message = messageText
+                            .Replace(",", "")
+                            .Replace(".", "")
+                            .Replace("?", "")
+                            .Replace("!", "")
+                            .Replace(".", "")
+                            .Replace(":", "")
+                            .Split(' ');
             string result;
             if (message.Length != 1)
             {
