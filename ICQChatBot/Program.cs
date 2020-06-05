@@ -181,6 +181,11 @@ namespace ICQChatBot
                         result = dbManager.SearchForEntityAndActivity(e, a);
                         if (result != null) return new Tuple<string, bool>(result, true);
                     }
+                foreach (var e in message)
+                {
+                    result = dbManager.SearchForEntityAndActivity(e);
+                    if (result != null) return new Tuple<string, bool>(result, true);
+                }
             }
             else
             {
