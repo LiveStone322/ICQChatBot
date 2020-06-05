@@ -45,8 +45,9 @@ namespace ICQChatBot
         private static string tooLongMsg = "Вы ввели слишком длинную команду";
         private static string answerMsg = "Отключение воды в выбранном Вами доме запланировано ";
         private static string helpMsg = "Вот что я умею:\n" 
-                                           + "/help - помощь по командам\n"
-                                           + "/water - напишите это, чтобы узнать, когда в выбранном доме отключат горячую воду";
+                                           + "/water - напишите это, чтобы узнать, когда в выбранном доме отключат горячую воду\n"
+                                           + "напомни - установка напоминания об отключении воды\n\n"
+                                           + "Плюс к этому всему я понимаю естественный язык. Можете слать команды как хотите";
         private static string notFoundMsg = "Я не нашел точного совпадения, но нашел ";
         private static string abortMsg = "Спасибо за использование.";
         private static string notFoundAbortMsg = "Если это не то, то по вашему адресу еще неизвестна дата отключения горячей воды.Можете написать \"стоп\" для прекращения диалога\n\n";
@@ -139,7 +140,7 @@ namespace ICQChatBot
                         outText = StartWaterSequence(message.From.UserId, messageText);
                         break;
                     case ("напомни"):
-                        if (botStates.ContainsKey(message.From.UserId))
+                        if (botStates.ContainsKey(message.From.UserId) && botStates[message.From.UserId] != State.ChoosingNotificationDate)
                             outText = "Но Вы ведь еще не ответили на предыдущий вопрос. Можете написать \"стоп\", если не хотите на него отвечать";
                         else if (dbManager.GetUser(message.From.UserId).Length == 0)
                             outText = "Вы еще не добавили дом для отслеживания. Напишите \"отключение\" или \"\\water\" для этого";
@@ -224,18 +225,21 @@ namespace ICQChatBot
             {
                 case (State.ChoosingNotificationDate):
                     int num = -1;
-                    int.TryParse(messageText.Trim(), out num);
-                    if (num < 1 || num > 7)
-                        outText = "Понимаю, что Вы не любите рамки, но можно в интервале от 1 до 7, пожалуйста?";
-                    else
+                    if (int.TryParse(messageText.Trim(), out num))
                     {
-                        var dbUser = dbManager.GetUser(userId);
-                        dbManager.SetNotifyDate(userId, (int)dbUser[0][4], (int)dbUser[0][5], num);
-                        outText = "Успешно установлено напоминание за " + num + " дней до отключения";
+                        if (num < 1 || num > 7)
+                            outText = "Понимаю, что Вы не любите рамки, но можно в интервале от 1 до 7, пожалуйста? Если Вы передумали, напишите \"стоп\"";
+                        else
+                        {
+                            var dbUser = dbManager.GetUser(userId);
+                            dbManager.SetNotifyDate(userId, (int)dbUser[0][4], (int)dbUser[0][5], num);
+                            outText = "Успешно установлено напоминание за " + num + " дней до отключения";
+                            // Clearing up
+                            botStates.Remove(userId);
+                            usersInputs.Remove(userId);
+                        }
                     }
-                    // Clearing up
-                    botStates.Remove(userId);
-                    usersInputs.Remove(userId);
+                    else outText = "Странное Вы число ввели. Попробуйте еще раз\nИли напишите \"стоп\", если передумали";
                     break;
                 case (State.WaitCity):
                     var c = dbManager.FindCity(messageText);
