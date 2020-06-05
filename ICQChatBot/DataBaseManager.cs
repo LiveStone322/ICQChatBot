@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using Npgsql;
 using FuzzyString;
+using System.Text.RegularExpressions;
 
 namespace ICQChatBot
 {
@@ -220,6 +221,121 @@ namespace ICQChatBot
             }
             return fetchedData;
 
+        }
+
+        internal void SaveAdress(int userId, string city, string street, string building, string duration)
+        {
+            using (var sConn = new NpgsqlConnection(SConnStr))
+            {
+                sConn.Open();
+                var parsedDuration = ParseDuration(duration);
+                var sCommand = new NpgsqlCommand
+                {
+                    Connection = sConn,
+                    CommandText = @"select * from users where chat_id=@user"
+
+
+                };
+                sCommand.Parameters.AddWithValue("@user", userId);
+                var reader = sCommand.ExecuteReader();
+
+                if (reader.HasRows)
+                {     //апдейт
+                    reader.Close();
+                    sCommand = new NpgsqlCommand
+                    {
+                        Connection = sConn,
+                        CommandText = "update users " +
+                                      "set  city=@c, street=@s, building=@b, from_day=@fd, from_month=@fm, to_day=@td, to_month=@tm " +
+                                      "where chat_id = @user"
+
+
+                    };
+                    sCommand.Parameters.AddWithValue("@user", userId);
+                    sCommand.Parameters.AddWithValue("@c", city);
+                    sCommand.Parameters.AddWithValue("@s", street);
+                    sCommand.Parameters.AddWithValue("@b", building);
+                    sCommand.Parameters.AddWithValue("@fd", parsedDuration.Item1);
+                    sCommand.Parameters.AddWithValue("@fm", parsedDuration.Item2);
+                    sCommand.Parameters.AddWithValue("@td", parsedDuration.Item3);
+                    sCommand.Parameters.AddWithValue("@tm", parsedDuration.Item4);
+                    sCommand.ExecuteNonQuery();
+                }
+                else  //криэйт
+                {
+                    reader.Close();
+                    sCommand = new NpgsqlCommand
+                    {
+                        Connection = sConn,
+                        CommandText = "insert into users (chat_id, city, street, building, from_day, from_month, to_day, to_month) " +
+                                       "values(@user, @c, @s, @b, @fd, @fm, @td, @tm)"
+                    };
+                    sCommand.Parameters.AddWithValue("@user", userId);
+                    sCommand.Parameters.AddWithValue("@c", city);
+                    sCommand.Parameters.AddWithValue("@s", street);
+                    sCommand.Parameters.AddWithValue("@b", building);
+                    sCommand.Parameters.AddWithValue("@fd", parsedDuration.Item1);
+                    sCommand.Parameters.AddWithValue("@fm", parsedDuration.Item2);
+                    sCommand.Parameters.AddWithValue("@td", parsedDuration.Item3);
+                    sCommand.Parameters.AddWithValue("@tm", parsedDuration.Item4);
+                    sCommand.ExecuteNonQuery();
+
+                }
+            }
+            
+        }
+
+        private Tuple<int, int, int, int> ParseDuration(string duration)
+        {
+            var matchesNumbers = Regex.Matches(duration, @"(\d+)");
+            var matchesLetters = Regex.Matches(duration, @"([а-я]){3,99}");
+            if (matchesLetters.Count > 1)
+            {   //с <число> <месяц> по <число> <месяц>
+                return new Tuple<int, int, int, int>(int.Parse(matchesNumbers[0].Value),
+                                                     ConvertMonthToNumber(matchesLetters[0].Value),
+                                                     int.Parse(matchesNumbers[1].Value),
+                                                     ConvertMonthToNumber(matchesLetters[1].Value));
+            }
+            else
+            {   //с <число> по <число> <месяц>
+                return new Tuple<int, int, int, int>(int.Parse(matchesNumbers[0].Value),
+                                                    ConvertMonthToNumber(matchesLetters[0].Value),
+                                                    int.Parse(matchesNumbers[1].Value),
+                                                    ConvertMonthToNumber(matchesLetters[0].Value));
+            }
+        }
+
+        private int ConvertMonthToNumber(string month)
+        {
+            switch(month)
+            {
+                case "января":
+                    return 1;
+                case "февраля":
+                    return 2;
+                case "марта":
+                    return 3;
+                case "апреля":
+                    return 4;
+                case "мая":
+                    return 5;
+                case "июня":
+                    return 6;
+                case "июля":
+                    return 7;
+                case "августа":
+                    return 8;
+                case "сентября":
+                    return 9;
+                case "октября":
+                    return 10;
+                case "ноября":
+                    return 11;
+                case "декабря":
+                    return 12;
+                default:
+                    throw new Exception("Неправильный месяц:" + month);
+            }
         }
     }
 }

@@ -17,6 +17,7 @@ namespace ICQChatBot
             public string city;
             public string street;
             public string building;
+            public string duration;
         }
 
 
@@ -40,6 +41,9 @@ namespace ICQChatBot
                                            + "/help - помощь по командам\n"
                                            + "/water - напишите это, чтобы узнать, когда в выбранном доме отключат горячую воду";
         private static string notFoundMsg = "Я не нашел точного совпадения, но нашел ";
+        private static string abortMsg = "Спасибо за использование.";
+        private static string notFoundAbortMsg = "Если это не то, то по вашему адресу еще неизвестна дата отключения горячей воды.Можете написать \"стоп\" для прекращения диалога\n\n";
+
 
         private static DataBaseManager dbManager;
 
@@ -92,6 +96,11 @@ namespace ICQChatBot
 
                 switch (messageText)
                 {
+                    case ("стоп"):
+                        botStates.Remove(message.From.UserId);
+                        usersInputs.Remove(message.From.UserId);
+                        outText = abortMsg;
+                        break;
                     case ("/help"):
                     case ("/start"):
                         outText = helpMsg;
@@ -171,20 +180,23 @@ namespace ICQChatBot
                     userInput.city = c;
                     outText = streetMsg;
                     botStates[userId] = State.WaitStreet;
-                    if (c != messageText) outText = notFoundMsg + c + "\n" + outText;
+                    if (c.ToLower() != messageText) outText = notFoundMsg + c + "\n" + notFoundAbortMsg + outText;
                     break;
                 case (State.WaitStreet):
                     var s = dbManager.FindStreet(messageText, userInput.city);
                     userInput.street = s;
                     outText = buildingMsg;
                     botStates[userId] = State.WaitBuilding;
-                    if (s != messageText) outText = notFoundMsg + s + "\n" + outText;
+                    if (s.ToLower() != messageText) outText = notFoundMsg + s + "\n" + notFoundAbortMsg + outText;
                     break;
                 case (State.WaitBuilding):
                     var b = dbManager.FindBuilding(messageText, userInput.city, userInput.street);
                     userInput.building = b;
-                    outText = GetResult(userInput);
-                    if (b != messageText) outText = notFoundMsg + b + " здание\n Возможно, нет данных для выбранного дома \n" + outText;
+                    var result = GetResult(userInput);
+                    outText = result.Item1;
+                    userInput.duration = result.Item2;
+                    if (b.ToLower() != messageText) outText = notFoundMsg + b + " здание\nВозможно, нет данных для выбранного дома \n" + outText;
+                    dbManager.SaveAdress(userId, userInput.city, userInput.street, userInput.building, userInput.duration);
 
                     // Clearing up
                     botStates.Remove(userId);
@@ -195,7 +207,7 @@ namespace ICQChatBot
             return outText;
         }
 
-        private static string GetResult(UserInput userInput)
+        private static Tuple<string, string> GetResult(UserInput userInput)
         {
             string result = "";
 
@@ -207,13 +219,13 @@ namespace ICQChatBot
             if (count > 0)
             {
                 result = answerMsg + data[0][4];
+                return new Tuple<string, string>(result, data[0][4]);
             }
             else
             {
                 result = failedMsg;
+                return new Tuple<string, string>(result, "");
             }
-
-            return result;
         }
     }
 }
