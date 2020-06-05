@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using Npgsql;
 
@@ -29,6 +30,8 @@ namespace ICQChatBot
 
         public List<string[]> GetData(string city)
         {
+            city = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(city);
+
             string commandText = @"select * from hot_water
                                     where city = @city";
             Dictionary<string, string> parameters = new Dictionary<string, string>
@@ -42,6 +45,9 @@ namespace ICQChatBot
 
         public List<string[]> GetData(string city, string street)
         {
+            city = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(city);
+            street = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(street);
+
             string commandText = @"select * from hot_water
                                     where (city = @city) and (street = @street)";
             Dictionary<string, string> parameters = new Dictionary<string, string>
@@ -54,8 +60,26 @@ namespace ICQChatBot
             return fetchedData;
         }
 
+        public List<string[]> GetData(string city, string street, string building)
+        {
+            city = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(city);
+            street = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(street);
 
-        private List<string[]> FetchData(string commandText, Dictionary<string, string> parameters)//, string street, string building, string duration)
+            string commandText = @"select * from hot_water
+                                    where (city = @city) and (street = @street) and (building = @building)";
+            Dictionary<string, string> parameters = new Dictionary<string, string>
+            {
+                { "city", city },
+                { "street", street },
+                { "building", building }
+            };
+
+            var fetchedData = FetchData(commandText, parameters);
+            return fetchedData;
+        }
+
+
+        private List<string[]> FetchData(string commandText, Dictionary<string, string> parameters)
         {
             List<string[]> fetchedData = new List<string[]>();
 
@@ -74,12 +98,7 @@ namespace ICQChatBot
                     sCommand.Parameters.AddWithValue(p, parameters[parameter]);
                 }
 
-                //sCommand.Parameters.AddWithValue("@p1", city);
-                //sCommand.Parameters.AddWithValue("@p2", parsedElement[1]);
-                //sCommand.Parameters.AddWithValue("@p3", parsedElement[2]);
-                //sCommand.Parameters.AddWithValue("@p4", parsedElement[3]);
                 var dataReader = sCommand.ExecuteReader();
-
                 string[] array = new string[dataReader.FieldCount];
 
                 while (dataReader.Read())                                // reads rows
@@ -87,15 +106,43 @@ namespace ICQChatBot
                     for (int i = 0; i < dataReader.FieldCount; i++)      // reads fields
                     {
                         array[i] = dataReader[i].ToString();
-                        //Console.Write(array[i]);
                     }
                     fetchedData.Add(array);
-
-                    //Console.WriteLine();
                 }   
             }
             return fetchedData;
 
+        }
+
+        public string SearchForEntityAndActivity(string entity, string activity)
+        {
+            string commandText = @"select * from knowledge_base
+                                    where entity = @e and activity = @a";
+            Dictionary<string, string> parameters = new Dictionary<string, string>
+            {
+                { "e", entity },
+                { "a", activity }
+            };
+
+            var fetchedData = FetchData(commandText, parameters);
+
+            if (fetchedData.Count >= 1) return fetchedData[0][2];
+            else return null;
+        }
+
+        internal string SearchForEntityAndActivity(string activity)
+        {
+            string commandText = @"select * from knowledge_base
+                                    where activity = @a";
+            Dictionary<string, string> parameters = new Dictionary<string, string>
+            {
+                { "a", activity }
+            };
+
+            var fetchedData = FetchData(commandText, parameters);
+
+            if (fetchedData.Count >= 1) return fetchedData[0][2];
+            else return null;
         }
     }
 }
