@@ -112,6 +112,33 @@ namespace ICQChatBot
             else return null;
         }
 
+        public long[] FindChatsToNotfy(int day, int month)
+        {
+            List<long> data = new List<long>();
+            using (var sConn = new NpgsqlConnection(SConnStr))
+            {
+                sConn.Open();
+                var sCommand = new NpgsqlCommand
+                {
+                    Connection = sConn,
+                    CommandText = @"select chat_id from users where notify_day is not null and notify_month is not null " +
+                                  "and notify_day=@d and notify_month=@m"
+                };
+                sCommand.Parameters.AddWithValue("@d", day);
+                sCommand.Parameters.AddWithValue("@m", month);
+
+                var dataReader = sCommand.ExecuteReader();
+                string[] array = new string[dataReader.FieldCount];
+
+                while (dataReader.Read())                                // reads rows
+                {
+                    data.Add((long)dataReader[0]);
+                }
+                dataReader.Close();
+            }
+            return data.ToArray();
+        }
+
         public string FindCity(string city)
         {
             string commandText = @"select distinct city from hot_water";
@@ -221,6 +248,53 @@ namespace ICQChatBot
             }
             return fetchedData;
 
+        }
+
+        public void SetNotifyDate(long chatId, int date, int month, int span)
+        {
+            DateTime fromDate= new DateTime(2020, month, date); //немного плохо хардкодить год
+            var notifyDate = fromDate.Subtract(new TimeSpan(span, 0, 0, 0));
+            using (var sConn = new NpgsqlConnection(SConnStr))
+            {
+                sConn.Open();
+                var sCommand = new NpgsqlCommand
+                {
+                    Connection = sConn,
+                    CommandText = @"update users
+                                    set notify_day = @d, notify_month = @m
+                                    where chat_id = @c;"
+                };
+                sCommand.Parameters.AddWithValue("@c", chatId);
+                sCommand.Parameters.AddWithValue("@d", notifyDate.Day);
+                sCommand.Parameters.AddWithValue("@m", notifyDate.Month);
+
+                sCommand.ExecuteNonQuery();
+            }
+        }
+
+        public Object[][] GetUser(int userId)
+        {
+            List<object[]> result = new List<Object[]>();
+            using (var sConn = new NpgsqlConnection(SConnStr))
+            {
+                sConn.Open();
+                var sCommand = new NpgsqlCommand
+                {
+                    Connection = sConn,
+                    CommandText = @"select * from users where chat_id=@c"
+                };
+                sCommand.Parameters.AddWithValue("@c", userId);
+
+                var dataReader = sCommand.ExecuteReader();
+
+                int i = 0;
+                while (dataReader.Read())                                // reads rows
+                {
+                    result.Add(new Object[dataReader.FieldCount]);
+                    dataReader.GetValues(result[i]);
+                }
+            }
+            return result.ToArray();
         }
 
         internal void SaveAdress(int userId, string city, string street, string building, string duration)

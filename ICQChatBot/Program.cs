@@ -11,7 +11,14 @@ namespace ICQChatBot
     class Program
     {
         // *** Defining custom data types ***
-        enum State { None, WaitCity, WaitStreet, WaitBuilding };
+        enum State 
+        {
+            None, 
+            WaitCity, 
+            WaitStreet, 
+            WaitBuilding, 
+            ChoosingNotificationDate
+        };
         class UserInput
         {
             public string city;
@@ -71,7 +78,10 @@ namespace ICQChatBot
             dbManager = new DataBaseManager();
 
             bot.StartReceiving();
+
             Console.WriteLine($"Start listening to @{me.Nick}");
+
+            RunNotificationsSender();
 
             // *** Testing DataBaseManager ***
             //var data = dbManager.GetData("Краснокамск", "Коммунальная");
@@ -79,6 +89,26 @@ namespace ICQChatBot
 
             Console.ReadLine(); //остановка при нажатии Enter
             bot.StopReceiving();
+        }
+
+        private static void RunNotificationsSender()
+        {
+            var startTimeSpan = TimeSpan.Zero;
+            var periodTimeSpan = TimeSpan.FromDays(1);
+
+            var timer = new System.Threading.Timer((e) =>
+            {
+                SendNotifications();
+            }, null, startTimeSpan, periodTimeSpan);
+        }
+
+        private static void SendNotifications()
+        {
+            var chats = dbManager.FindChatsToNotfy(DateTime.Now.Day, DateTime.Now.Month);
+            foreach(var u in chats)
+            {
+                bot.SendTextMessageAsync(u, "В выбранном доме скоро отключат воду").Wait();
+            }
         }
 
         private static void BotOnMessageReceived(object sender, MessageEventArgs messageEventArgs)
@@ -107,6 +137,18 @@ namespace ICQChatBot
                         break;
                     case ("/water"):
                         outText = StartWaterSequence(message.From.UserId, messageText);
+                        break;
+                    case ("напомни"):
+                        if (botStates.ContainsKey(message.From.UserId))
+                            outText = "Но Вы ведь еще не ответили на предыдущий вопрос. Можете написать \"стоп\", если не хотите на него отвечать";
+                        else if (dbManager.GetUser(message.From.UserId).Length == 0)
+                            outText = "Вы еще не добавили дом для отслеживания. Напишите \"отключение\" или \"\\water\" для этого";
+                        else
+                        {
+                            outText = "За сколько дней вы хотите получить уведомление? Напишите число от 1 до 7";
+                            botStates.Add(message.From.UserId, State.ChoosingNotificationDate);
+                            usersInputs.Add(message.From.UserId, new UserInput());
+                        }
                         break;
                     default:
                         outText = ProcessWaterSequence(message.From.UserId, messageText);
@@ -175,6 +217,21 @@ namespace ICQChatBot
 
             switch (userState)
             {
+                case (State.ChoosingNotificationDate):
+                    int num = -1;
+                    int.TryParse(messageText.Trim(), out num);
+                    if (num < 1 || num > 7)
+                        outText = "Понимаю, что Вы не любите рамки, но можно в интервале от 1 до 7, пожалуйста?";
+                    else
+                    {
+                        var dbUser = dbManager.GetUser(userId);
+                        dbManager.SetNotifyDate(userId, (int)dbUser[0][4], (int)dbUser[0][5], num);
+                        outText = "Успешно установлено напоминание за " + num + " дней до отключения";
+                    }
+                    // Clearing up
+                    botStates.Remove(userId);
+                    usersInputs.Remove(userId);
+                    break;
                 case (State.WaitCity):
                     var c = dbManager.FindCity(messageText);
                     userInput.city = c;
