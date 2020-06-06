@@ -38,27 +38,24 @@
 
 name: C# Code Analyzer
 
-on:
-  push:
-    branches: [ master, dev ]
+on: [push]
 
 jobs:
-
-  build:
-
-    strategy:
-      matrix:
-        configuration: [Debug]
-
-    runs-on: ubuntu-18.04  # For a list of available runner types, refer to 
-                             # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
-
+  check-quality:
+    runs-on: ubuntu-latest
+    name: A job to check my code quality
     steps:
-      - name: Run C# Code Analyzer      
-        uses: microsoft/CSharpCodeAnalyzer@v0.1-beta
-        id: runcsharpcodeanalyzer
-        with:
-          binary-path: 'https://github.com/LiveStone322/ICQChatBot/tree/master/ICQChatBot'
-          repository: ${{ github.repository }}
-      - name: C# Code Analyzer analysis results
-        run: echo "${{ steps.runcsharpcodeanalyzer.outputs.results }}"
+    - name: Check code meets quality standards
+      id: code-inspector
+      uses: codeinspectorio/github-action@master
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        code_inspector_access_key: ${{ secrets.CODE_INSPECTOR_ACCESS_KEY }}
+        code_inspector_secret_key: ${{ secrets.CODE_INSPECTOR_SECRET_KEY }}
+        min_quality_grade: 'WARNING'
+        min_quality_score: '50'
+        max_defects_rate: '0.0001'
+        max_complex_functions_rate: '0.0001'
+        max_long_functions_rate: '0.0001'
+        project_name: ''
+        max_timeout_sec: '600'
