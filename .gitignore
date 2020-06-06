@@ -6,6 +6,7 @@
 # All is Super Safe 
 Token.cs
 PrivateData.cs
+dotnet-core-desktop.yml
 
 # User-specific files
 *.rsuser
