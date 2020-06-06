@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -71,6 +71,8 @@ namespace ICQChatBot
 
         static void Main(string[] args)
         {
+	    string test_ci = null;
+            Console.WriteLine(test_ci);
             bot.OnMessage += BotOnMessageReceived;
             var me = bot.GetMeAsync().Result;
 
