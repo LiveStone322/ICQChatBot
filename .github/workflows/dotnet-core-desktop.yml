@@ -54,12 +54,11 @@ jobs:
                              # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
 
     steps:
-      - name: C# Code Analyzer
+      - name: Run C# Code Analyzer      
         uses: microsoft/CSharpCodeAnalyzer@v0.1-beta
+        id: runcsharpcodeanalyzer
         with:
-          # The path where the binaries (.dll and .pdb) are located.
-          binary-path: https://github.com/LiveStone322/ICQChatBot/tree/master/ICQChatBot
-          # Whether to opt out telemetry collection.
-          # Repository name.
-          # Only report on the files specified.
-          report-on-files: https://github.com/LiveStone322/ICQChatBot/tree/master/ICQChatBot
+          binary-path: 'https://github.com/LiveStone322/ICQChatBot/tree/master/ICQChatBot'
+          repository: ${{ github.repository }}
+      - name: C# Code Analyzer analysis results
+        run: echo "${{ steps.runcsharpcodeanalyzer.outputs.results }}"
